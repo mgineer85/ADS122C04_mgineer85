@@ -1,0 +1,17 @@
+{
+  "name": "ADS122C04_mgineer85",
+  "keywords": "ADS122C04, ADS122C04, sensor, adc, strain gauge",
+  "description": "Easily control the ADC ADS122C04 and get readings. Optimized to use for strain gauges.",
+  "homepage": "https://github.com/mgineer85/ADS122C04_mgineer85",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mgineer85/ADS122C04_mgineer85"
+  },
+  "version": "1.0.0",
+  "authors": {
+    "name": "Michael G.",
+    "url": "https://github.com/mgineer85/ADS122C04_mgineer85"
+  },
+  "frameworks": "*",
+  "platforms": "*"
+}
