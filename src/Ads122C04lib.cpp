@@ -40,12 +40,12 @@ bool ADS122C04::isConnected()
   _i2cPort->beginTransmission(_deviceAddress);
   if (_i2cPort->endTransmission() != 0)
   {
-    log_e("device not detected, no ACK");
+    // log_e("device not detected, no ACK");
     return false; // Sensor did not ACK
   }
   else
   {
-    log_d("device detected, ACK");
+    // log_d("device detected, ACK");
     return true; // All good
   }
 }
@@ -69,6 +69,14 @@ bool ADS122C04::setGain(ADS122C04_GAIN_Values gain)
   value &= 0b11110001;                   // Clear gain bits
   value |= gain << ADS122C04_CTRL0_GAIN; // Mask in new bits
   return (writeRegister(ADS122C04_CTRL0, value));
+}
+
+ADS122C04_GAIN_Values ADS122C04::getGain()
+{
+  uint8_t value = readRegister(ADS122C04_CTRL0);
+  value &= 0b00001110;                   // Clear gain bits
+  value = value >> ADS122C04_CTRL0_GAIN; // Mask in new bits
+  return (ADS122C04_GAIN_Values)value;
 }
 
 bool ADS122C04::setMux(ADS122C04_MUX_Values mux)
@@ -106,12 +114,41 @@ bool ADS122C04::setOperatingMode(ADS122C04_MODE_Values mode)
 {
   return setBit(ADS122C04_CTRL1_MODE, ADS122C04_CTRL1, mode);
 }
+ADS122C04_MODE_Values ADS122C04::getOperatingMode()
+{
+  return (ADS122C04_MODE_Values)getBit(ADS122C04_CTRL1_MODE, ADS122C04_CTRL1);
+}
 bool ADS122C04::setDataRate(ADS122C04_DR_Values dr)
 {
   uint8_t value = readRegister(ADS122C04_CTRL1);
   value &= 0b00011111;               // Clear gain bits
   value |= dr << ADS122C04_CTRL1_DR; // Mask in new bits
   return (writeRegister(ADS122C04_CTRL1, value));
+}
+ADS122C04_DR_Values ADS122C04::getDataRate()
+{
+  uint8_t value = readRegister(ADS122C04_CTRL1);
+  value &= 0b11100000;                 // Clear gain bits
+  value = value >> ADS122C04_CTRL1_DR; // Mask in new bits
+  return (ADS122C04_DR_Values)value;
+}
+uint16_t ADS122C04::getDataRateRealSamples()
+{
+  ADS122C04_MODE_Values mode = getOperatingMode();
+  ADS122C04_DR_Values dr = getDataRate();
+
+  if (mode == ADS122C04_MODE_NORMAL)
+  {
+    return dr_normal_mode[dr];
+  }
+  else if (mode == ADS122C04_MODE_TURBO)
+  {
+    return dr_normal_mode[dr] * 2;
+  }
+  else
+  {
+    return 0;
+  }
 }
 
 bool ADS122C04::setIdacCurrent(ADS122C04_IDAC_Values idac)
@@ -276,9 +313,16 @@ int32_t ADS122C04::getAverageReading(uint8_t number)
 
 /// @brief Recommended to perform internal calibration after gain changed
 /// @return calibration successful
-bool ADS122C04::internalCalibration()
+bool ADS122C04::internalCalibration(uint16_t time_ms)
 {
   // helps improving accuracy by removing any offset from internal circuitry
+
+  // account for different sample rates
+  uint16_t samplesToRead = (uint16_t)(getDataRateRealSamples() * (time_ms / 1000.0));
+  if (samplesToRead < 4)
+  {
+    samplesToRead = 4;
+  }
 
   // remove pga offset by shorting mux and deduct offset afterwards from readings
   ADS122C04_MUX_Values mux_before_calibration = getMux();
@@ -288,7 +332,7 @@ bool ADS122C04::internalCalibration()
   // throw away to ensure stable results
   getAverageReadingRaw();
   // deviation from 0 is offset that is permanently removed from following readings
-  setInternalCalibrationOffset(getAverageReadingRaw(8));
+  setInternalCalibrationOffset(getAverageReadingRaw(samplesToRead));
   // restore former mux config
   setMux(mux_before_calibration);
 
@@ -318,13 +362,13 @@ bool ADS122C04::sensorConnected()
 void ADS122C04::printRegisterValues()
 {
   Serial.print("Config_Regs 0-3: ");
-  Serial.print(readRegister(ADS122C04_CTRL0), HEX);
+  Serial.print(readRegister(ADS122C04_CTRL0), BIN);
   Serial.print(" ");
-  Serial.print(readRegister(ADS122C04_CTRL1), HEX);
+  Serial.print(readRegister(ADS122C04_CTRL1), BIN);
   Serial.print(" ");
-  Serial.print(readRegister(ADS122C04_CTRL2), HEX);
+  Serial.print(readRegister(ADS122C04_CTRL2), BIN);
   Serial.print(" ");
-  Serial.print(readRegister(ADS122C04_CTRL3), HEX);
+  Serial.print(readRegister(ADS122C04_CTRL3), BIN);
   Serial.println("");
 }
 
@@ -376,18 +420,18 @@ uint8_t ADS122C04::readRegister(uint8_t reg)
   _i2cPort->write(ADS122C04_CMD_RREG | (reg << 2));
   if (_i2cPort->endTransmission() != 0)
   {
-    log_e("readRegister failed, no ACK");
+    // log_e("readRegister failed, no ACK");
     return (-1); // Sensor did not ACK  //TODO: -1 cant return to uint8_t?
   }
   _i2cPort->requestFrom((uint8_t)_deviceAddress, (uint8_t)1);
 
   if (_i2cPort->available())
   {
-    log_d("readRegister success, return value");
+    // log_d("readRegister success, return value");
     return (_i2cPort->read());
   }
 
-  log_e("readRegister failed, other error");
+  // log_e("readRegister failed, other error");
   return (-1); // Error
 }
 

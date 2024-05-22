@@ -90,19 +90,19 @@ typedef enum
 // CTRL0[7:4] Input multiplexer configuration
 typedef enum
 {
-  ADS122C04_MUX_AIN0_AIN1 = 0b0000, // default
-  ADS122C04_MUX_AIN0_AIN2,
-  ADS122C04_MUX_AIN0_AIN3,
-  ADS122C04_MUX_AIN1_AIN0,
-  ADS122C04_MUX_AIN1_AIN2,
-  ADS122C04_MUX_AIN1_AIN3,
-  ADS122C04_MUX_AIN2_AIN3,
-  ADS122C04_MUX_AIN3_AIN2,
-  ADS122C04_MUX_AIN0_AVSS,
-  ADS122C04_MUX_AIN1_AVSS,
-  ADS122C04_MUX_AIN2_AVSS,
-  ADS122C04_MUX_AIN3_AVSS,
-  ADS122C04_MUX_VREFPx_VREFNx_DIV4_MONITOR_PGA_BYPASSED,
+  ADS122C04_MUX_pAIN0_nAIN1 = 0b0000, // default
+  ADS122C04_MUX_pAIN0_nAIN2,
+  ADS122C04_MUX_pAIN0_nAIN3,
+  ADS122C04_MUX_pAIN1_nAIN0,
+  ADS122C04_MUX_pAIN1_nAIN2,
+  ADS122C04_MUX_pAIN1_nAIN3,
+  ADS122C04_MUX_pAIN2_nAIN3,
+  ADS122C04_MUX_pAIN3_nAIN2,
+  ADS122C04_MUX_pAIN0_nAVSS,
+  ADS122C04_MUX_pAIN1_nAVSS,
+  ADS122C04_MUX_pAIN2_nAVSS,
+  ADS122C04_MUX_pAIN3_nAVSS,
+  ADS122C04_MUX_VREFP_VREFN_DIV4_MONITOR_PGA_BYPASSED,
   ADS122C04_MUX_AVDD_AVSS_DIV4_MONITOR_PGA_BYPASSED,
   ADS122C04_MUX_AINp_AINn_SHORTED_TO_AVDD_AVSS_DIV2,
   // ADS122C04_MUX_RESERVED,
@@ -149,6 +149,16 @@ typedef enum
   ADS122C04_DR_NORMAL1000_TURBO2000 = 0b110,
   // ADS122C04_DR_RESERVED = 0b111,
 } ADS122C04_DR_Values;
+static const uint16_t dr_normal_mode[7] =
+    {
+        20,
+        45,
+        90,
+        175,
+        330,
+        600,
+        1000,
+};
 
 // CTRL2[2:0] IDAC current setting
 typedef enum
@@ -234,13 +244,17 @@ public: // ADS122C04 related functions
   // configure register functions
   bool setPgaBypass(ADS122C04_PGA_BYPASS_Values pga_bypass); // CONF0:
   bool setGain(ADS122C04_GAIN_Values gain);                  // CONF0: Set the gain. x1, 2, 4, 8, 16, 32, 64, 128 are available
+  ADS122C04_GAIN_Values getGain();                           // CONF0: Get the gain. x1, 2, 4, 8, 16, 32, 64, 128 are available
   bool setMux(ADS122C04_MUX_Values mux);                     // CONF0:
   ADS122C04_MUX_Values getMux();                             // CONF0:
   bool setTemperatureSensorMode(ADS122C04_TS_Values ts);     // CONF1: Temperature Sensor mode
   bool setVoltageReference(ADS122C04_VREF_Values vref);      // CONF1: Voltage reference selection
   bool setConversionMode(ADS122C04_CM_Values cm);            // CONF1: Conversion mode
-  bool setOperatingMode(ADS122C04_MODE_Values mode);         // CONF1: operating mode
-  bool setDataRate(ADS122C04_DR_Values dr);                  // CONF1: datarate
+  bool setOperatingMode(ADS122C04_MODE_Values mode);         // CONF1: set operating mode (normal/turbo)
+  ADS122C04_MODE_Values getOperatingMode();                  // CONF1: get operating mode (normal/turbo)
+  bool setDataRate(ADS122C04_DR_Values dr);                  // CONF1: set datarate
+  ADS122C04_DR_Values getDataRate();                         // CONF1: get datarate
+  uint16_t getDataRateRealSamples();                         // get real datarate in samples per second
   bool setIdacCurrent(ADS122C04_IDAC_Values idac);           // CONF2: IDAC current setting
   bool setBurnoutCurrentSource(ADS122C04_BCS_Values bo);     // CONF2: Burnout current sources
   bool setDataIntegrityCheck(ADS122C04_CRC_Values crc);      // CONF2: Data integrity check enable
@@ -258,7 +272,7 @@ public: // ADS122C04 related functions
   bool waitUntilAvailable(uint16_t timeout_ms = ADS122C04_TIMEOUT_DEFAULT); // blocks until timeout (return false) or data avail within timeout (return true)
   int32_t getReading();                                                     // reading from adc includes offset from internal calibration
   int32_t getAverageReading(uint8_t number = 4);                            // reading from adc averaged and corrected offset from internal calibration
-  bool internalCalibration();                                               // Call after mode changes
+  bool internalCalibration(uint16_t time_ms = 200);                         // Call after mode changes, time_ms is over which time to average (accounts for different sps rates)
   bool sensorConnected();                                                   // Use burnout current to detect open connection (no sensor)
   void printRegisterValues();
 

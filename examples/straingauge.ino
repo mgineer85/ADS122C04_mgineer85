@@ -34,7 +34,7 @@ void setup()
     ads.setConversionMode(ADS122C04_CM_SINGLE_SHOT_MODE);
 
     // setup strain gauge config
-    ads.setMux(ADS122C04_MUX_AIN1_AIN2);
+    ads.setMux(ADS122C04_MUX_pAIN1_nAIN0);
     ads.setVoltageReference(ADS122C04_VREF_EXTERNAL_REFP_REFN);
     ads.setGain(ADS122C04_GAIN_128);
 
